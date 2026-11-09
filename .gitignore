@@ -4,3 +4,6 @@ __pycache__/
 *.csv
 *.ndjson
 accounts.json
+
+# Go build output.
+/monarch-to-sure

@@ -19,7 +19,7 @@ from urllib.parse import quote, urlsplit
 
 import monarch_to_sure as m
 
-HTML_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "wizard.html")
+HTML_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "web", "wizard.html")
 MAX_BODY_BYTES = 200 * 1024 * 1024
 
 BALANCE_COLUMNS = {"Date", "Balance", "Account"}

@@ -4,8 +4,10 @@ Moves your accounts, transactions and daily balance history from
 [Monarch](https://www.monarchmoney.com) into a self-hosted
 [Sure](https://github.com/we-promise/sure) server, through Sure's API.
 
-It's a single Python script plus a browser wizard. It needs Python 3.9 or
-later and nothing else: no packages to install.
+It comes in two runtimes that do exactly the same thing: a **Go** binary
+with nothing to install, and a **Python** script that needs only Python 3.9 or
+later. Both include a browser wizard, take the same commands and options, and
+write byte-identical import files.
 
 This is an independent project, not affiliated with Monarch or with Sure.
 
@@ -16,7 +18,14 @@ This is an independent project, not affiliated with Monarch or with Sure.
 2. **Create a Sure API key.** In Sure, go to **Settings → API keys** and
    create a key with read/write access. Log in as the user you're importing
    for: the accounts go into that user's family.
-3. **Get this tool:**
+3. **Get this tool**, with [Go](https://go.dev/dl/) 1.22 or later:
+
+   ```sh
+   go install github.com/jezmor/monarch-to-sure/go/cmd/monarch-to-sure@latest
+   ```
+
+   That puts `monarch-to-sure` in `$(go env GOPATH)/bin`. Or, with Python
+   instead:
 
    ```sh
    git clone https://github.com/jezmor/monarch-to-sure.git
@@ -26,7 +35,8 @@ This is an independent project, not affiliated with Monarch or with Sure.
 4. **Run the wizard:**
 
    ```sh
-   python3 monarch_to_sure.py wizard
+   monarch-to-sure wizard                 # Go
+   python3 python/monarch_to_sure.py wizard  # Python
    ```
 
    It opens in your browser. Connect with your Sure address and API key,
@@ -38,10 +48,25 @@ deletes the family's financial data but keeps the user and its API keys.
 
 ## Requirements
 
-- Python 3.9 or later.
+- Go 1.22 or later to build the Go runtime, or Python 3.9 or later for the
+  Python one. Neither needs any other packages.
 - A Sure server with the import sessions API (`/api/v1/import_sessions`).
   Tested against the `ghcr.io/we-promise/sure:stable` image at commit
   `605d002`.
+
+## Layout
+
+The repo is organized by runtime:
+
+| Path | What |
+| --- | --- |
+| `go/` | Go runtime: `cmd/monarch-to-sure` (the command) and `internal/` (`importer` converts the exports, `sure` talks to the API, `wizard` serves the page) |
+| `python/` | Python runtime: `monarch_to_sure.py` (the command and converter) and `wizard.py` |
+| `web/wizard.html` | The wizard page. Both runtimes serve this one file; Go embeds it in the binary |
+| `scripts/parity.sh` | Converts the same exports with both runtimes and checks the import files are identical |
+
+The examples below use the Go command, `monarch-to-sure`. For Python, use
+`python3 python/monarch_to_sure.py` with the same arguments.
 
 ## What it imports
 
@@ -64,7 +89,7 @@ blank), and `Owner`, `Reviewed`, `Reviewed At` and `Reviewed By`.
 ## The wizard
 
 ```sh
-python3 monarch_to_sure.py wizard
+monarch-to-sure wizard
 ```
 
 It opens a page on this computer that walks through the whole import:
@@ -95,7 +120,7 @@ account config and inspect the import file before uploading it.
 3. Write the account config:
 
    ```sh
-   python3 monarch_to_sure.py init-config \
+   monarch-to-sure init-config \
      --balances Balances.csv --transactions Transactions.csv -o accounts.json
    ```
 
@@ -128,7 +153,7 @@ account config and inspect the import file before uploading it.
 
    ```sh
    export SURE_URL=https://sure.example.com SURE_API_KEY=...
-   python3 monarch_to_sure.py convert \
+   monarch-to-sure convert \
      --balances Balances.csv --transactions Transactions.csv \
      --config accounts.json -o sure-import.ndjson
    ```
@@ -138,7 +163,7 @@ account config and inspect the import file before uploading it.
 5. Upload it:
 
    ```sh
-   python3 monarch_to_sure.py upload sure-import.ndjson
+   monarch-to-sure upload sure-import.ndjson
    ```
 
    The upload is split into chunks of up to 4 MB and imported as a single Sure
@@ -201,8 +226,13 @@ commits.
 ## Tests
 
 ```sh
-python3 -m unittest
+go test ./...                            # Go
+(cd python && python3 -m unittest)       # Python
+scripts/parity.sh Balances.csv Transactions.csv
 ```
+
+The parity check converts your own exports with both runtimes and compares the
+results. Its files stay in a temporary directory that it deletes afterwards.
 
 ## License
 

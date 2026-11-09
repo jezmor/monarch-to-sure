@@ -1,8 +1,47 @@
 # Monarch to Sure
 
-Moves accounts, transactions and balance history from a Monarch export into a
-Sure server through the Sure API. It needs Python 3.9 or later and nothing
-else.
+Moves your accounts, transactions and daily balance history from
+[Monarch](https://www.monarchmoney.com) into a self-hosted
+[Sure](https://github.com/we-promise/sure) server, through Sure's API.
+
+It's a single Python script plus a browser wizard. It needs Python 3.9 or
+later and nothing else: no packages to install.
+
+This is an independent project, not affiliated with Monarch or with Sure.
+
+## Quick start
+
+1. **Export from Monarch.** Download your balance history and your
+   transactions as CSV files.
+2. **Create a Sure API key.** In Sure, go to **Settings → API keys** and
+   create a key with read/write access. Log in as the user you're importing
+   for: the accounts go into that user's family.
+3. **Get this tool:**
+
+   ```sh
+   git clone https://github.com/jezmor/monarch-to-sure.git
+   cd monarch-to-sure
+   ```
+
+4. **Run the wizard:**
+
+   ```sh
+   python3 monarch_to_sure.py wizard
+   ```
+
+   It opens in your browser. Connect with your Sure address and API key,
+   choose the two exports, check each account, review, and import. Keep the
+   terminal open until it's done, then press Ctrl+C.
+
+To start over in Sure, use **Settings → Profile → Reset** for that user, which
+deletes the family's financial data but keeps the user and its API keys.
+
+## Requirements
+
+- Python 3.9 or later.
+- A Sure server with the import sessions API (`/api/v1/import_sessions`).
+  Tested against the `ghcr.io/we-promise/sure:stable` image at commit
+  `605d002`.
 
 ## What it imports
 
@@ -22,12 +61,10 @@ Not imported: pending transactions (unless `--include-pending` is passed),
 `Original Statement` (used as the transaction name only when `Merchant` is
 blank), and `Owner`, `Reviewed`, `Reviewed At` and `Reviewed By`.
 
-## Wizard
-
-The easiest way to import is the browser wizard:
+## The wizard
 
 ```sh
-python3 tools/monarch_to_sure/monarch_to_sure.py wizard
+python3 monarch_to_sure.py wizard
 ```
 
 It opens a page on this computer that walks through the whole import:
@@ -44,14 +81,21 @@ records the new balance as of today. In `accounts.json` these are
 `"transactions": false` and `"current_balance"`, with amounts owed entered as
 positive numbers.
 
-## Usage
+Options: `--port` (default 8765), `--no-browser` to print the link instead of
+opening it, and `--url` and `--api-key` (or `SURE_URL` and `SURE_API_KEY`) to
+skip the connect step.
+
+## Command line
+
+The same import can be run step by step, which lets you keep and edit the
+account config and inspect the import file before uploading it.
 
 1. In Monarch, export transactions and balance history as CSV files.
 2. Create an API key in Sure under **Settings → API keys**, with read/write access.
 3. Write the account config:
 
    ```sh
-   python3 tools/monarch_to_sure/monarch_to_sure.py init-config \
+   python3 monarch_to_sure.py init-config \
      --balances Balances.csv --transactions Transactions.csv -o accounts.json
    ```
 
@@ -84,7 +128,7 @@ positive numbers.
 
    ```sh
    export SURE_URL=https://sure.example.com SURE_API_KEY=...
-   python3 tools/monarch_to_sure/monarch_to_sure.py convert \
+   python3 monarch_to_sure.py convert \
      --balances Balances.csv --transactions Transactions.csv \
      --config accounts.json -o sure-import.ndjson
    ```
@@ -94,7 +138,7 @@ positive numbers.
 5. Upload it:
 
    ```sh
-   python3 tools/monarch_to_sure/monarch_to_sure.py upload sure-import.ndjson
+   python3 monarch_to_sure.py upload sure-import.ndjson
    ```
 
    The upload is split into chunks of up to 4 MB and imported as a single Sure
@@ -145,8 +189,21 @@ An account that isn't closed keeps its last Monarch balance, even when its
 history ends before the rest of the export. To hide an open account without
 zeroing it, set `"status": "disabled"` and leave `closed` as `false`.
 
+## Privacy
+
+Your exports never leave your computer except to go to the Sure server you
+connect to. The wizard keeps them in memory. The command line writes
+`accounts.json` (account names and balance summaries) and the NDJSON import
+file (everything) wherever you point `-o`, so delete those when you're done.
+This repo's `.gitignore` keeps CSV, NDJSON and `accounts.json` files out of
+commits.
+
 ## Tests
 
 ```sh
-cd tools/monarch_to_sure && python3 -m unittest
+python3 -m unittest
 ```
+
+## License
+
+[AGPL-3.0](LICENSE), the same license as Sure.

@@ -1,1 +1,6 @@
 __pycache__/
+
+# Exports and generated files can hold financial data.
+*.csv
+*.ndjson
+accounts.json
